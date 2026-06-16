@@ -1,0 +1,1189 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>AquaSense v2.0 — Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:        #F0F4F8;
+    --surface:   #FFFFFF;
+    --surface2:  #EBF2FA;
+    --border:    #D6E4F0;
+    --blue-900:  #0B2E4E;
+    --blue-700:  #1A5F8A;
+    --blue-500:  #2A8FCA;
+    --blue-300:  #7DC3E8;
+    --blue-100:  #D0EBFA;
+    --text-1:    #0B2E4E;
+    --text-2:    #4A6A88;
+    --text-3:    #8AAEC8;
+    --ok:        #22C55E;
+    --ok-bg:     #DCFCE7;
+    --warn:      #F59E0B;
+    --warn-bg:   #FEF3C7;
+    --crit:      #EF4444;
+    --crit-bg:   #FEE2E2;
+    --radius:    16px;
+    --radius-sm: 10px;
+    --shadow:    0 2px 12px rgba(11,46,78,.08);
+    --shadow-lg: 0 8px 32px rgba(11,46,78,.12);
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html { -webkit-text-size-adjust: 100%; }
+
+  body {
+    font-family: var(--sans);
+    background: var(--bg);
+    color: var(--text-1);
+    min-height: 100vh;
+    min-height: 100dvh;
+    -webkit-font-smoothing: antialiased;
+    overscroll-behavior-y: none;
+  }
+
+  /* ══════════════════════════════════════════════
+     HEADER
+  ══════════════════════════════════════════════ */
+  header {
+    background: var(--blue-900);
+    color: #fff;
+    padding: 0 16px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 16px rgba(0,0,0,.25);
+  }
+
+  .header-inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-shrink: 0;
+  }
+
+  .logo-icon {
+    width: 32px;
+    height: 32px;
+    background: var(--blue-500);
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .logo-text { display: flex; flex-direction: column; line-height: 1.15; }
+  .logo-text strong { font-size: 14px; font-weight: 700; letter-spacing: -.2px; }
+  .logo-text span {
+    font-size: 9px;
+    color: var(--blue-300);
+    font-family: var(--mono);
+    letter-spacing: .4px;
+  }
+
+  .header-right {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  /* conn toggle — hide labels on very small screens */
+  .conn-toggle {
+    display: flex;
+    background: rgba(255,255,255,.08);
+    border-radius: 8px;
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .conn-btn {
+    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    color: var(--blue-300);
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: var(--sans);
+    transition: all .15s;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 36px;
+  }
+
+  .conn-btn .btn-label { display: inline; }
+
+  .conn-btn.active { background: var(--blue-500); color: #fff; }
+
+  .status-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 11px;
+    font-weight: 600;
+    background: rgba(34,197,94,.15);
+    color: #4ADE80;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .status-dot {
+    width: 7px; height: 7px;
+    border-radius: 50%;
+    background: #4ADE80;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+
+  @keyframes pulse {
+    0%,100% { opacity:1; transform:scale(1); }
+    50%      { opacity:.5; transform:scale(1.4); }
+  }
+
+  .status-pill.offline { background: rgba(239,68,68,.15); color: #FCA5A5; }
+  .status-pill.offline .status-dot { background: #FCA5A5; animation: none; }
+
+  /* ══════════════════════════════════════════════
+     LAYOUT
+  ══════════════════════════════════════════════ */
+  main {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 16px 16px 56px;
+    padding-left: max(16px, env(safe-area-inset-left));
+    padding-right: max(16px, env(safe-area-inset-right));
+    padding-bottom: max(56px, env(safe-area-inset-bottom));
+  }
+
+  /* ══════════════════════════════════════════════
+     STATUS BAR
+  ══════════════════════════════════════════════ */
+  .status-bar {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    font-size: 12px;
+  }
+
+  .status-bar-left {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-2);
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .status-bar-left span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .status-bar-right {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+  }
+
+  .rssi-bar { display: flex; align-items: flex-end; gap: 2px; height: 14px; }
+  .rssi-bar span { width: 3px; background: var(--blue-300); border-radius: 2px; display: inline-block; transition: background .3s; }
+  .rssi-bar span.active { background: var(--blue-500); }
+
+  .last-update {
+    font-size: 12px;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+
+  /* ══════════════════════════════════════════════
+     SECTION LABEL
+  ══════════════════════════════════════════════ */
+  .section-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.1px;
+    text-transform: uppercase;
+    color: var(--text-3);
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  /* ══════════════════════════════════════════════
+     SIMULATION CONTROLS
+  ══════════════════════════════════════════════ */
+  .sim-controls {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    border: 1px dashed var(--blue-300);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+  }
+
+  .sim-header {
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+    color: var(--blue-500);
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 12px;
+  }
+
+  .sim-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+
+  .slider-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .slider-group label {
+    font-size: 11px;
+    color: var(--text-2);
+    font-weight: 600;
+  }
+
+  .slider-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .slider-val {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--blue-700);
+    font-weight: 600;
+    white-space: nowrap;
+    min-width: 44px;
+    text-align: right;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--blue-500);
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(42,143,202,.4);
+  }
+  input[type=range]::-moz-range-thumb {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--blue-500);
+    border: none;
+    cursor: pointer;
+  }
+
+  /* ══════════════════════════════════════════════
+     MINI STATS
+  ══════════════════════════════════════════════ */
+  .mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 16px;
+  }
+
+  .mini-card {
+    background: var(--surface);
+    border-radius: var(--radius-sm);
+    padding: 14px 12px;
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow);
+  }
+
+  .mini-card-label {
+    font-size: 10px;
+    color: var(--text-3);
+    font-weight: 600;
+    letter-spacing: .3px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .mini-card-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text-1);
+    font-family: var(--mono);
+    line-height: 1.1;
+  }
+
+  .mini-card-sub {
+    font-size: 10px;
+    color: var(--text-2);
+    margin-top: 2px;
+  }
+
+  /* ══════════════════════════════════════════════
+     CARDS — GENERIC
+  ══════════════════════════════════════════════ */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 20px;
+    box-shadow: var(--shadow);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    transition: box-shadow .2s;
+  }
+
+  @media (hover: hover) {
+    .card:hover { box-shadow: var(--shadow-lg); }
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .card-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--text-2);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title i { color: var(--blue-500); font-size: 12px; }
+
+  /* ══════════════════════════════════════════════
+     PRIMARY GRID
+  ══════════════════════════════════════════════ */
+  .primary-grid {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  /* ══════════════════════════════════════════════
+     GAUGE CARD
+  ══════════════════════════════════════════════ */
+  .gauge-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .gauge-svg-wrap {
+    position: relative;
+    width: min(200px, 100%);
+    height: auto;
+    aspect-ratio: 200 / 120;
+  }
+
+  .gauge-svg-wrap svg { width: 100%; height: 100%; display: block; }
+
+  .gauge-center-text {
+    position: absolute;
+    bottom: 6%;
+    left: 50%;
+    transform: translateX(-50%);
+    text-align: center;
+    pointer-events: none;
+    white-space: nowrap;
+  }
+
+  .gauge-pct {
+    font-size: clamp(22px, 6vw, 32px);
+    font-weight: 700;
+    color: var(--blue-700);
+    font-family: var(--mono);
+    line-height: 1;
+  }
+
+  .gauge-label { font-size: 10px; color: var(--text-3); font-weight: 600; }
+
+  .gauge-meta {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+  }
+
+  .gauge-litros {
+    font-size: clamp(18px, 4vw, 22px);
+    font-weight: 700;
+    color: var(--blue-700);
+    font-family: var(--mono);
+  }
+
+  .gauge-litros-label { font-size: 11px; color: var(--text-2); }
+
+  .autonomia-badge {
+    margin-top: 4px;
+    background: var(--blue-100);
+    color: var(--blue-700);
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* ══════════════════════════════════════════════
+     TEMP CARD
+  ══════════════════════════════════════════════ */
+  .temp-value {
+    font-size: clamp(38px, 9vw, 52px);
+    font-weight: 300;
+    color: var(--blue-700);
+    font-family: var(--mono);
+    line-height: 1;
+    letter-spacing: -2px;
+  }
+  .temp-unit {
+    font-size: clamp(14px, 3vw, 18px);
+    font-weight: 600;
+    color: var(--blue-500);
+    vertical-align: super;
+  }
+
+  .temp-context {
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-2);
+    background: var(--surface2);
+    border-radius: 8px;
+    padding: 10px 12px;
+    border-left: 3px solid var(--blue-300);
+  }
+
+  .temp-bar-track {
+    height: 6px;
+    background: var(--border);
+    border-radius: 4px;
+    overflow: hidden;
+    margin-bottom: 4px;
+  }
+  .temp-bar-fill { height: 100%; border-radius: 4px; transition: width .6s ease, background .4s; }
+  .temp-bar-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text-3); }
+
+  /* ══════════════════════════════════════════════
+     QUALITY CARD
+  ══════════════════════════════════════════════ */
+  .quality-badge {
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-weight: 600;
+    font-size: 14px;
+    transition: all .3s;
+  }
+  .quality-badge .badge-icon {
+    width: 36px; height: 36px;
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+  }
+  .quality-badge.ok   { background: var(--ok-bg);   color: #15803D; }
+  .quality-badge.ok   .badge-icon { background: var(--ok);   color: #fff; }
+  .quality-badge.warn { background: var(--warn-bg); color: #92400E; }
+  .quality-badge.warn .badge-icon { background: var(--warn); color: #fff; }
+  .quality-badge.crit { background: var(--crit-bg); color: #991B1B; }
+  .quality-badge.crit .badge-icon { background: var(--crit); color: #fff; }
+
+  .quality-ntu { font-family: var(--mono); font-size: 26px; font-weight: 700; color: var(--blue-700); }
+  .quality-ntu-label { font-size: 11px; color: var(--text-3); }
+  .quality-desc { font-size: 12px; line-height: 1.5; color: var(--text-2); }
+
+  /* ══════════════════════════════════════════════
+     BOTTOM GRID
+  ══════════════════════════════════════════════ */
+  .bottom-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 16px;
+  }
+
+  .chart-wrap { position: relative; width: 100%; height: 180px; }
+
+  /* ══════════════════════════════════════════════
+     ALERTS
+  ══════════════════════════════════════════════ */
+  .alerts-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+    padding: 10px 11px;
+    border-radius: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+  .alert-item.info { background: var(--blue-100); color: var(--blue-700); }
+  .alert-item.warn { background: var(--warn-bg);  color: #92400E; }
+  .alert-item.ok   { background: var(--ok-bg);    color: #15803D; }
+  .alert-item i    { margin-top: 1px; font-size: 13px; flex-shrink: 0; }
+  .alert-time      { margin-top: 2px; font-size: 10px; opacity: .6; font-family: var(--mono); }
+
+  /* ══════════════════════════════════════════════
+     CHART TABS
+  ══════════════════════════════════════════════ */
+  .chart-tabs {
+    display: flex;
+    gap: 3px;
+    background: var(--bg);
+    border-radius: 8px;
+    padding: 3px;
+  }
+  .chart-tab {
+    padding: 5px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    color: var(--text-2);
+    font-family: var(--sans);
+    transition: all .15s;
+    min-height: 32px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  .chart-tab.active {
+    background: var(--surface);
+    color: var(--blue-700);
+    box-shadow: 0 1px 4px rgba(0,0,0,.08);
+  }
+
+  /* ══════════════════════════════════════════════
+     FOOTER
+  ══════════════════════════════════════════════ */
+  footer {
+    text-align: center;
+    padding: 20px 16px;
+    font-size: 11px;
+    color: var(--text-3);
+    border-top: 1px solid var(--border);
+    margin-top: 8px;
+  }
+  footer strong { color: var(--blue-500); }
+
+
+  /* ══════════════════════════════════════════════
+     ▼ RESPONSIVE — TABLET  (≤ 900px)
+  ══════════════════════════════════════════════ */
+  @media (max-width: 900px) {
+    .primary-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+    /* level card spans full width */
+    .primary-grid .card:first-child {
+      grid-column: 1 / -1;
+    }
+    /* inside level card: put gauge + meta side by side */
+    .primary-grid .card:first-child .gauge-wrap {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+    }
+    .primary-grid .card:first-child .gauge-svg-wrap {
+      width: 160px;
+      flex-shrink: 0;
+    }
+    .primary-grid .card:first-child .gauge-meta {
+      align-items: flex-start;
+      width: auto;
+    }
+    .primary-grid .card:first-child .autonomia-badge {
+      justify-content: flex-start;
+    }
+  }
+
+  /* ══════════════════════════════════════════════
+     ▼ RESPONSIVE — MOBILE  (≤ 640px)
+  ══════════════════════════════════════════════ */
+  @media (max-width: 640px) {
+
+    /* Header: hide text labels in conn buttons */
+    .conn-btn .btn-label { display: none; }
+    .conn-btn { padding: 6px 9px; }
+
+    /* Status bar: stack vertically */
+    .status-bar {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 6px;
+    }
+    .status-bar-right { gap: 12px; }
+
+    /* Sim controls: stack sliders */
+    .sim-grid { grid-template-columns: 1fr; gap: 10px; }
+
+    /* Mini stats: 2 cols */
+    .mini-stats { grid-template-columns: 1fr 1fr; }
+    /* third card spans full if orphaned */
+    .mini-stats .mini-card:last-child:nth-child(odd) { grid-column: 1 / -1; }
+
+    /* Primary grid: single column */
+    .primary-grid {
+      grid-template-columns: 1fr;
+    }
+    .primary-grid .card:first-child { grid-column: auto; }
+
+    /* Level card: restore vertical stack */
+    .primary-grid .card:first-child .gauge-wrap {
+      flex-direction: column;
+      gap: 8px;
+    }
+    .primary-grid .card:first-child .gauge-svg-wrap {
+      width: min(220px, 70vw);
+    }
+    .primary-grid .card:first-child .gauge-meta { align-items: center; width: 100%; }
+    .primary-grid .card:first-child .autonomia-badge { justify-content: center; }
+
+    /* Bottom grid: single column */
+    .bottom-grid { grid-template-columns: 1fr; }
+
+    /* Chart slightly shorter */
+    .chart-wrap { height: 160px; }
+
+    /* chart header: wrap nicely */
+    .card-header { flex-wrap: wrap; gap: 8px; }
+
+    main { padding-top: 14px; }
+  }
+
+  /* ══════════════════════════════════════════════
+     ▼ RESPONSIVE — SMALL PHONES  (≤ 380px)
+  ══════════════════════════════════════════════ */
+  @media (max-width: 380px) {
+    .mini-stats { grid-template-columns: 1fr; }
+    .mini-stats .mini-card:last-child:nth-child(odd) { grid-column: auto; }
+
+    .card { padding: 16px; }
+
+    .gauge-pct { font-size: 22px; }
+    .temp-value { font-size: 38px; }
+  }
+
+  /* ══════════════════════════════════════════════
+     Reduced motion
+  ══════════════════════════════════════════════ */
+  @media (prefers-reduced-motion: reduce) {
+    .status-dot { animation: none; }
+    .temp-bar-fill { transition: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ─── HEADER ─────────────────────────────────── -->
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <div class="logo-icon"><i class="fa-solid fa-droplet"></i></div>
+      <div class="logo-text">
+        <strong>AquaSense</strong>
+        <span>v2.0 · SEMIARIDO-NE</span>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="conn-toggle">
+        <button class="conn-btn active" id="btn-wifi" onclick="setConn('wifi')">
+          <i class="fa-solid fa-wifi"></i>
+          <span class="btn-label">Wi-Fi / MQTT</span>
+        </button>
+        <button class="conn-btn" id="btn-bt" onclick="setConn('bt')">
+          <i class="fa-brands fa-bluetooth-b"></i>
+          <span class="btn-label">Bluetooth</span>
+        </button>
+      </div>
+      <div class="status-pill" id="status-pill">
+        <div class="status-dot"></div>
+        <span id="status-text">Online</span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- ─── STATUS BAR ────────────────────────────── -->
+  <div class="status-bar">
+    <div class="status-bar-left">
+      <i class="fa-solid fa-microchip" style="color:var(--blue-500);flex-shrink:0"></i>
+      <span>ESP32 · <strong id="conn-label">MQTT broker: aqsns.local:1883</strong></span>
+    </div>
+    <div class="status-bar-right">
+      <div style="display:flex;align-items:center;gap:6px">
+        <div class="rssi-bar" id="rssi-bar">
+          <span style="height:4px"  class="active"></span>
+          <span style="height:7px"  class="active"></span>
+          <span style="height:10px" class="active"></span>
+          <span style="height:13px" class="active"></span>
+        </div>
+        <span style="font-size:11px;color:var(--text-2)" id="rssi-val">-68 dBm</span>
+      </div>
+      <div class="last-update">
+        <i class="fa-regular fa-clock" style="color:var(--blue-500)"></i>
+        <span id="last-upd-text">Atualizado há 0 s</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── SIMULAÇÃO ─────────────────────────────── -->
+  <div class="sim-controls">
+    <div class="sim-header">
+      <i class="fa-solid fa-sliders"></i> Simulação de Sensores
+    </div>
+    <div class="sim-grid">
+      <div class="slider-group">
+        <label>Nível da Cisterna</label>
+        <div class="slider-row">
+          <input type="range" min="0" max="100" value="67" id="sl-nivel" oninput="updateSim()">
+          <span class="slider-val" id="sv-nivel">67%</span>
+        </div>
+      </div>
+      <div class="slider-group">
+        <label>Temperatura</label>
+        <div class="slider-row">
+          <input type="range" min="15" max="40" step="0.1" value="26.5" id="sl-temp" oninput="updateSim()">
+          <span class="slider-val" id="sv-temp">26.5 °C</span>
+        </div>
+      </div>
+      <div class="slider-group">
+        <label>Turbidez (NTU)</label>
+        <div class="slider-row">
+          <input type="range" min="0" max="200" value="3" id="sl-ntu" oninput="updateSim()">
+          <span class="slider-val" id="sv-ntu">3 NTU</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── MINI STATS ────────────────────────────── -->
+  <div class="mini-stats">
+    <div class="mini-card">
+      <div class="mini-card-label"><i class="fa-solid fa-bolt" style="color:var(--warn)"></i> Bateria Solar</div>
+      <div class="mini-card-value">84%</div>
+      <div class="mini-card-sub">Carregando · 14:30h</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card-label"><i class="fa-solid fa-thermometer-half" style="color:var(--blue-500)"></i> Temp. Ambiente</div>
+      <div class="mini-card-value">31.2 °C</div>
+      <div class="mini-card-sub">Dentro do esperado</div>
+    </div>
+    <div class="mini-card">
+      <div class="mini-card-label"><i class="fa-solid fa-satellite-dish" style="color:var(--blue-500)"></i> Sensor Ultrassom</div>
+      <div class="mini-card-value">OK</div>
+      <div class="mini-card-sub">JSN-SR04T · ativo</div>
+    </div>
+  </div>
+
+  <!-- ─── LEITURAS PRINCIPAIS ───────────────────── -->
+  <div class="section-label">Leituras dos Sensores</div>
+  <div class="primary-grid">
+
+    <!-- NÍVEL -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fa-solid fa-water"></i> Quantidade de Água</div>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono)">HC-SR04</span>
+      </div>
+      <div class="gauge-wrap">
+        <div class="gauge-svg-wrap">
+          <svg viewBox="0 0 200 120" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="gaugeGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                <stop offset="0%"   stop-color="#2A8FCA"/>
+                <stop offset="100%" stop-color="#0B2E4E"/>
+              </linearGradient>
+            </defs>
+            <path d="M20,110 A90,90 0 0,1 180,110" fill="none" stroke="#D6E4F0" stroke-width="14" stroke-linecap="round"/>
+            <path id="gauge-fill" d="M20,110 A90,90 0 0,1 180,110" fill="none" stroke="url(#gaugeGrad)" stroke-width="14" stroke-linecap="round"
+              stroke-dasharray="283" stroke-dashoffset="93"/>
+          </svg>
+          <div class="gauge-center-text">
+            <div class="gauge-pct" id="g-pct">67%</div>
+            <div class="gauge-label">do volume total</div>
+          </div>
+        </div>
+        <div class="gauge-meta">
+          <div class="gauge-litros" id="g-litros">10.720 L</div>
+          <div class="gauge-litros-label">de 16.000 litros de capacidade</div>
+          <div class="autonomia-badge">
+            <i class="fa-solid fa-calendar-days"></i>
+            <span>Reserva para <strong id="g-dias">18 dias</strong></span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TEMPERATURA -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fa-solid fa-temperature-half"></i> Temperatura</div>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono)">DS18B20</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:center">
+        <div class="temp-value" id="t-val">26.5<span class="temp-unit">°C</span></div>
+        <div>
+          <div class="temp-bar-track">
+            <div class="temp-bar-fill" id="t-bar" style="width:46%;background:var(--ok)"></div>
+          </div>
+          <div class="temp-bar-labels">
+            <span>15 °C</span><span>25 °C</span><span>40 °C</span>
+          </div>
+        </div>
+        <div class="temp-context" id="t-ctx">
+          Temperatura amena. Boas condições de conservação da água armazenada.
+        </div>
+      </div>
+    </div>
+
+    <!-- QUALIDADE -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fa-solid fa-flask-vial"></i> Qualidade da Água</div>
+        <span style="font-size:10px;color:var(--text-3);font-family:var(--mono)">Turbidez</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px;flex:1;justify-content:center">
+        <div class="quality-badge ok" id="q-badge">
+          <div class="badge-icon"><i class="fa-solid fa-check" id="q-icon"></i></div>
+          <div>
+            <div id="q-status">OK · Água Limpa</div>
+            <div style="font-size:11px;font-weight:400;opacity:.75" id="q-sub">Própria para uso doméstico</div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <div class="quality-ntu" id="q-ntu">3</div>
+          <div>
+            <div class="quality-ntu-label">NTU medido</div>
+            <div style="font-size:10px;color:var(--text-3)">limite: &lt; 5 NTU (CONAMA)</div>
+          </div>
+        </div>
+        <div class="quality-desc" id="q-desc">
+          Turbidez dentro dos padrões regulamentares. Água apta para uso sem tratamento adicional.
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ─── HISTÓRICO + ALERTAS ───────────────────── -->
+  <div class="section-label">Histórico e Notificações</div>
+  <div class="bottom-grid">
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fa-solid fa-chart-line"></i> Histórico do Nível</div>
+        <div class="chart-tabs">
+          <button class="chart-tab active" onclick="setChartPeriod('24h',this)">24h</button>
+          <button class="chart-tab"        onclick="setChartPeriod('7d',this)">7 dias</button>
+          <button class="chart-tab"        onclick="setChartPeriod('30d',this)">30 dias</button>
+        </div>
+      </div>
+      <div class="chart-wrap">
+        <canvas id="levelChart"></canvas>
+      </div>
+      <div style="font-size:11px;color:var(--text-3);text-align:right">
+        <i class="fa-solid fa-circle-info"></i> Dados simulados em tempo real
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title"><i class="fa-solid fa-bell"></i> Notificações</div>
+        <span style="font-size:10px;color:var(--text-3);background:var(--bg);padding:3px 7px;border-radius:6px">3 eventos</span>
+      </div>
+      <div class="alerts-list">
+        <div class="alert-item ok">
+          <i class="fa-solid fa-check-circle"></i>
+          <div>
+            <div>Reabastecimento detectado (+8.200 L)</div>
+            <div class="alert-time">Hoje · 07:42</div>
+          </div>
+        </div>
+        <div class="alert-item warn">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <div>Consumo acima da média (320 L/dia)</div>
+            <div class="alert-time">Ontem · 21:15</div>
+          </div>
+        </div>
+        <div class="alert-item info">
+          <i class="fa-solid fa-info-circle"></i>
+          <div>
+            <div>Dispositivo reconectado via Wi-Fi</div>
+            <div class="alert-time">Ontem · 06:03</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</main>
+
+<footer>
+  <strong>AquaSense v2.0</strong> · ESP32 + HC-SR04 + DS18B20 + Turbidez<br>
+  Monitoramento inteligente de recursos hídricos no Semiárido Nordestino<br>
+  <span style="font-size:10px;opacity:.7">IFPB Campus Catolé do Rocha · Paraíba · Brasil</span>
+</footer>
+
+<script>
+const CAP_TOTAL   = 16000;
+const CONSUMO_DIA = 600;
+let connMode      = 'wifi';
+let lastUpdateSec = 0;
+
+/* ── CHART ──────────────────────────────── */
+const ctx       = document.getElementById('levelChart').getContext('2d');
+const chartGrad = ctx.createLinearGradient(0, 0, 0, 200);
+chartGrad.addColorStop(0, 'rgba(42,143,202,.35)');
+chartGrad.addColorStop(1, 'rgba(42,143,202,0)');
+
+function genData(period) {
+  if (period === '24h') {
+    const h    = new Date().getHours();
+    const labels = Array.from({length:24}, (_,i) => `${(h-23+i+24)%24}h`);
+    const data   = Array.from({length:24}, (_,i) => Math.max(10, 67 - (i/24)*8 + (Math.random()-.5)*2).toFixed(1));
+    return { labels, data };
+  }
+  if (period === '7d') {
+    const d = new Date();
+    const labels = Array.from({length:7}, (_,i) => { const dd=new Date(d); dd.setDate(dd.getDate()-6+i); return dd.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); });
+    return { labels, data:[52,48,91,87,80,74,67] };
+  }
+  const d = new Date();
+  const labels = Array.from({length:10}, (_,i) => { const dd=new Date(d); dd.setDate(dd.getDate()-27+i*3); return dd.toLocaleDateString('pt-BR',{day:'2-digit',month:'2-digit'}); });
+  return { labels, data:[95,87,78,70,62,55,90,85,76,67] };
+}
+
+const levelChart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels: genData('24h').labels,
+    datasets: [{
+      label: 'Nível (%)',
+      data: genData('24h').data,
+      borderColor: '#2A8FCA',
+      borderWidth: 2.5,
+      backgroundColor: chartGrad,
+      fill: true,
+      tension: .4,
+      pointRadius: 3,
+      pointBackgroundColor: '#2A8FCA',
+      pointBorderColor: '#fff',
+      pointBorderWidth: 2,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: { callbacks: { label: c => ` ${c.parsed.y}%` } }
+    },
+    scales: {
+      x: { grid: { color:'#EBF2FA' }, ticks: { color:'#8AAEC8', font:{ size:10, family:'JetBrains Mono' }, maxTicksLimit:8 } },
+      y: { min:0, max:100, grid:{ color:'#EBF2FA' }, ticks:{ color:'#8AAEC8', font:{ size:10, family:'JetBrains Mono' }, callback: v=>v+'%' } }
+    }
+  }
+});
+
+function setChartPeriod(period, btn) {
+  document.querySelectorAll('.chart-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const { labels, data } = genData(period);
+  levelChart.data.labels = labels;
+  levelChart.data.datasets[0].data = data;
+  levelChart.update('active');
+}
+
+/* ── GAUGE ──────────────────────────────── */
+function updateGauge(pct) {
+  const total  = 283;
+  const offset = total - (pct / 100) * total;
+  const el     = document.getElementById('gauge-fill');
+  el.style.strokeDashoffset = offset;
+  if (pct <= 20)      el.style.stroke = '#EF4444';
+  else if (pct <= 40) el.style.stroke = '#F59E0B';
+  else                el.style.stroke = 'url(#gaugeGrad)';
+
+  document.getElementById('g-pct').textContent    = pct + '%';
+  const litros = Math.round((pct/100)*CAP_TOTAL);
+  document.getElementById('g-litros').textContent = litros.toLocaleString('pt-BR') + ' L';
+  document.getElementById('g-dias').textContent   = Math.round(litros/CONSUMO_DIA) + ' dias';
+}
+
+/* ── TEMPERATURA ────────────────────────── */
+function updateTemp(t) {
+  document.getElementById('t-val').innerHTML = t.toFixed(1) + '<span class="temp-unit">°C</span>';
+  const pct   = ((t-15)/25)*100;
+  const color = t > 35 ? 'var(--crit)' : t > 30 ? 'var(--warn)' : 'var(--ok)';
+  const bar   = document.getElementById('t-bar');
+  bar.style.width      = pct + '%';
+  bar.style.background = color;
+  const msg = t < 20
+    ? 'Temperatura fria. A água pode apresentar redução na palatabilidade.'
+    : t <= 28
+      ? 'Temperatura amena. Boas condições de conservação da água armazenada.'
+      : t <= 33
+        ? 'Temperatura elevada. Monitore com atenção — favorece proliferação de bactérias.'
+        : '⚠️ Temperatura crítica! Alta chance de proliferação bacteriana. Trate a água antes do uso.';
+  document.getElementById('t-ctx').textContent = msg;
+}
+
+/* ── QUALIDADE ──────────────────────────── */
+function updateQuality(ntu) {
+  const badge  = document.getElementById('q-badge');
+  const status = document.getElementById('q-status');
+  const sub    = document.getElementById('q-sub');
+  const icon   = document.getElementById('q-icon');
+  const desc   = document.getElementById('q-desc');
+  document.getElementById('q-ntu').textContent = ntu;
+  badge.className = 'quality-badge';
+  if (ntu <= 5) {
+    badge.classList.add('ok'); icon.className='fa-solid fa-check';
+    status.textContent='OK · Água Limpa'; sub.textContent='Própria para uso doméstico';
+    desc.textContent='Turbidez dentro dos padrões regulamentares. Água apta para uso sem tratamento adicional.';
+  } else if (ntu <= 40) {
+    badge.classList.add('warn'); icon.className='fa-solid fa-triangle-exclamation';
+    status.textContent='Atenção · Turbidez Alta'; sub.textContent='Use filtro antes do consumo';
+    desc.textContent='Turbidez acima do limite CONAMA (5 NTU). Recomenda-se filtração ou coagulação antes do uso.';
+  } else {
+    badge.classList.add('crit'); icon.className='fa-solid fa-xmark';
+    status.textContent='Alerta · Água Imprópria'; sub.textContent='Não usar sem tratamento';
+    desc.textContent='Turbidez muito elevada. Água imprópria para consumo. Realize limpeza e tratamento com cloro.';
+  }
+}
+
+/* ── CONEXÃO ────────────────────────────── */
+function setConn(mode) {
+  connMode = mode;
+  document.getElementById('btn-wifi').classList.toggle('active', mode==='wifi');
+  document.getElementById('btn-bt').classList.toggle('active',   mode==='bt');
+  const lbl  = document.getElementById('conn-label');
+  const rssi = document.getElementById('rssi-val');
+  if (mode==='wifi') {
+    lbl.textContent  = 'MQTT broker: aqsns.local:1883';
+    rssi.textContent = '-68 dBm';
+    document.querySelectorAll('.rssi-bar span').forEach((s,i)=>s.classList.toggle('active',i<4));
+  } else {
+    lbl.textContent  = 'BLE GATT · ESP32 AquaSense';
+    rssi.textContent = '-52 dBm';
+    document.querySelectorAll('.rssi-bar span').forEach(s=>s.classList.add('active'));
+  }
+}
+
+/* ── SIMULAÇÃO ──────────────────────────── */
+function updateSim() {
+  const nivel = +document.getElementById('sl-nivel').value;
+  const temp  = +document.getElementById('sl-temp').value;
+  const ntu   = +document.getElementById('sl-ntu').value;
+  document.getElementById('sv-nivel').textContent = nivel + '%';
+  document.getElementById('sv-temp').textContent  = temp.toFixed(1) + ' °C';
+  document.getElementById('sv-ntu').textContent   = ntu + ' NTU';
+  updateGauge(nivel);
+  updateTemp(temp);
+  updateQuality(ntu);
+  lastUpdateSec = 0;
+}
+
+/* ── TIMER ──────────────────────────────── */
+function formatTime(s) {
+  if (s < 60)   return `Atualizado há ${s} s`;
+  if (s < 3600) return `Atualizado há ${Math.floor(s/60)} min`;
+  return `Atualizado há ${Math.floor(s/3600)}h`;
+}
+
+setInterval(() => {
+  lastUpdateSec++;
+  document.getElementById('last-upd-text').textContent = formatTime(lastUpdateSec);
+  if (lastUpdateSec % 5 === 0) {
+    const t    = +document.getElementById('sl-temp').value;
+    const newT = Math.min(40, Math.max(15, t + (Math.random()-.5)*.3));
+    document.getElementById('sl-temp').value = newT;
+    document.getElementById('sv-temp').textContent = newT.toFixed(1) + ' °C';
+    updateTemp(newT);
+  }
+}, 1000);
+
+updateSim();
+</script>
+</body>
+</html>
